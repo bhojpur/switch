@@ -88,27 +88,27 @@ const (
 )
 
 func init() {
-	payHost := os.Getenv("SWITCH_HOST")
-	if payHost == "" {
-		payHost = "localhost:7777"
+	switchHost := os.Getenv("SWITCH_HOST")
+	if switchHost == "" {
+		switchHost = "localhost:7777"
 	}
-	payKubeconfig := os.Getenv("KUBECONFIG")
-	if payKubeconfig == "" {
+	switchKubeconfig := os.Getenv("KUBECONFIG")
+	if switchKubeconfig == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			log.WithError(err).Warn("cannot determine user's home directory")
 		} else {
-			payKubeconfig = filepath.Join(home, ".kube", "config")
+			switchKubeconfig = filepath.Join(home, ".kube", "config")
 		}
 	}
-	payNamespace := os.Getenv("SWITCH_K8S_NAMESPACE")
-	payLabelSelector := os.Getenv("SWITCH_K8S_LABEL")
-	if payLabelSelector == "" {
-		payLabelSelector = "app.kubernetes.io/name=pay"
+	switchNamespace := os.Getenv("SWITCH_K8S_NAMESPACE")
+	switchLabelSelector := os.Getenv("SWITCH_K8S_LABEL")
+	if switchLabelSelector == "" {
+		switchLabelSelector = "app.kubernetes.io/name=switch"
 	}
-	payPodPort := os.Getenv("SWITCH_K8S_POD_PORT")
-	if payPodPort == "" {
-		payPodPort = "7777"
+	switchPodPort := os.Getenv("SWITCH_K8S_POD_PORT")
+	if switchPodPort == "" {
+		switchPodPort = "7777"
 	}
 	dialMode := os.Getenv("SWITCH_DIAL_MODE")
 	if dialMode == "" {
@@ -117,13 +117,13 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVar(&rootCmdOpts.Verbose, "verbose", false, "en/disable verbose logging")
 	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.DialMode, "dial-mode", dialMode, "dial mode that determines how we connect to Bhojpur Switch. Valid values are \"host\" or \"kubernetes\" (defaults to SWITCH_DIAL_MODE env var).")
-	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.Host, "host", payHost, "[host dial mode] Bhojpur Switch host to talk to (defaults to SWITCH_HOST env var)")
-	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.Kubeconfig, "kubeconfig", payKubeconfig, "[kubernetes dial mode] kubeconfig file to use (defaults to KUEBCONFIG env var)")
-	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.K8sNamespace, "k8s-namespace", payNamespace, "[kubernetes dial mode] Kubernetes namespace in which to look for the Bhojpur Switch pods (defaults to SWITCH_K8S_NAMESPACE env var, or configured kube context namespace)")
+	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.Host, "host", switchHost, "[host dial mode] Bhojpur Switch host to talk to (defaults to SWITCH_HOST env var)")
+	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.Kubeconfig, "kubeconfig", switchKubeconfig, "[kubernetes dial mode] kubeconfig file to use (defaults to KUEBCONFIG env var)")
+	rootCmd.PersistentFlags().StringVar(&rootCmdOpts.K8sNamespace, "k8s-namespace", switchNamespace, "[kubernetes dial mode] Kubernetes namespace in which to look for the Bhojpur Switch pods (defaults to SWITCH_K8S_NAMESPACE env var, or configured kube context namespace)")
 	// The following are such specific flags that really only matters if one doesn't use the stock helm charts.
 	// They can still be set using an env var, but there's no need to clutter the CLI with them.
-	rootCmdOpts.K8sLabelSelector = payLabelSelector
-	rootCmdOpts.K8sPodPort = payPodPort
+	rootCmdOpts.K8sLabelSelector = switchLabelSelector
+	rootCmdOpts.K8sPodPort = switchPodPort
 }
 
 type closableGrpcClientConnInterface interface {
@@ -162,7 +162,7 @@ func dialKubernetes() (closableGrpcClientConnInterface, error) {
 		return nil, err
 	}
 
-	pod, err := findPayPod(clientSet, namespace, rootCmdOpts.K8sLabelSelector)
+	pod, err := findSwitchPod(clientSet, namespace, rootCmdOpts.K8sLabelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find Bhojpur Switch pod: %w", err)
 	}
@@ -233,8 +233,8 @@ func getKubeconfig(kubeconfig string) (res *rest.Config, namespace string, err e
 	return res, namespace, nil
 }
 
-// findPayPod returns the first pod we found for a particular component
-func findPayPod(clientSet kubernetes.Interface, namespace, selector string) (podName string, err error) {
+// findSwitchPod returns the first pod we found for a particular component
+func findSwitchPod(clientSet kubernetes.Interface, namespace, selector string) (podName string, err error) {
 	pods, err := clientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 		LabelSelector: selector,
 	})
